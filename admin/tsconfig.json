@@ -1,15 +1,13 @@
 {
     "compilerOptions": {
         "lib": [
-            "es5",
-            "es6",
-            "dom"
+            "es6"
         ],
         "target": "es6",
         "module": "commonjs",
         "outDir": "./dist",
         "rootDir": "./src",
-        "esModuleInterop": true,
+        "esModuleInterop": false,
         "moduleResolution": "node",
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true
