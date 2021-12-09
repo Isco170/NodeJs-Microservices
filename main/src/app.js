@@ -1,14 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-let amqp = require('amqplib/callback_api');
-const prodRoutes = require('./route/product.routes');
+const amqp = require('amqplib/callback_api');
 
-const database = require('./database');
 app.use(cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+require('./database');
 
 amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamqp.com/uitzwlvz', (error0, connection) => {
     if(error0){
@@ -20,22 +20,19 @@ amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamq
             throw error1
         }
 
+        channel.assertQueue('hello', {durable: false})
+
         app.get('/', (req, res) => {
             res.send('Hello world');
         })
         
-        app.use('/api/products', prodRoutes)
+        const PORT = process.env.PORT || 8001;
         
-        const PORT = process.env.PORT || 8000;
-        
+        channel.consume('hello', (message) => {
+            console.log(message.content.toString())
+        })
         app.listen(PORT, () => {
             console.log(`App listening at http://localhost:${PORT}`);
-            database.authenticate().then(async () => {
-                console.log("Conectado a base de dados");
-                // await database.sync({ alter: true });
-            }).catch((e) => {
-                console.log("Erro: "+ e);
-            });
         });
     })
 })
