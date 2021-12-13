@@ -11,6 +11,7 @@ app.use(express.urlencoded({ extended: false }));
 
 require('./database');
 
+app.use('/api', prodRoutes);
 
 const PORT = process.env.PORT || 8001;
 
