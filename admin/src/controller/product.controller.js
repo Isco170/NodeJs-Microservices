@@ -13,7 +13,7 @@ async function getProducts(request, response) {
                 throw error1
             }
 
-            channel.sendToQueue('hello', Buffer.from('hello there'))
+            channel.sendToQueue('hello', Buffer.from('hello there, testing'))
         })
     })
     return response.json(products)
