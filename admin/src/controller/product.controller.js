@@ -71,6 +71,20 @@ async function likeProd(request, response) {
     const prod = await prodModel.findOne({ where: { id: request.params.id } });
 
     await prodModel.update({ likes: prod.likes + 1 }, { where: { id: prod.id } });
+
+    amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamqp.com/uitzwlvz', (error0, connection) => {
+        if (error0) {
+            throw error0
+        }
+
+        connection.createChannel((error1, channel) => {
+            if (error1) {
+                throw error1
+            }
+
+            channel.sendToQueue('product_liked', Buffer.from(JSON.stringify(prod)));
+        })
+    })
     return response.send(prod);
 }
 
