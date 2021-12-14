@@ -31,6 +31,8 @@ async function getOne(request, response) {
 
 async function updateProd(request, response) {
     const prod = await prodModel.update(request.body, { where: { id: request.body.id } });
+    const updatedProd = await prodModel.findOne({where:{id: request.body.id}});
+    
     amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamqp.com/uitzwlvz', (error0, connection) => {
         if (error0) {
             throw error0
@@ -41,10 +43,10 @@ async function updateProd(request, response) {
                 throw error1
             }
 
-            channel.sendToQueue('product_updated', Buffer.from(JSON.stringify(prod)))
+            channel.sendToQueue('product_updated', Buffer.from(JSON.stringify(updatedProd)))
         })
     })
-    return response.send(prod)
+    return response.send(updatedProd)
 }
 
 async function deleteProd(request, response) {
@@ -59,7 +61,7 @@ async function deleteProd(request, response) {
                 throw error1
             }
 
-            channel.sendToQueue('product_deleted', Buffer.from(JSON.stringify(prod.id)))
+            channel.sendToQueue('product_deleted', Buffer.from(JSON.stringify(request.params.id)))
         })
     })
     return response.send(true);
