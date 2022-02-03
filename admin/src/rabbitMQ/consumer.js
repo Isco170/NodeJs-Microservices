@@ -1,4 +1,4 @@
-const { createConnection } = require('./connection')
+const { createConnection } = require('./index')
 const { v4: uuidv4 } = require('uuid');
 
   exports.default = async (data) => {
