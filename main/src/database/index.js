@@ -1,10 +1,9 @@
 const mongoose = require('mongoose');
-
-const uri = "mongodb+srv://ultrauser:ultrapass@cluster0.b1zfl.mongodb.net/yt_node_main?retryWrites=true&w=majority";
+const config = require('../config/index')
 
 mongoose
     .connect(
-        uri,
+        config.mongo.url,
         {useNewUrlParser: true, useUnifiedTopology: true}
         )
     .then(() => {

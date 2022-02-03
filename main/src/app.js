@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const amqp = require('amqplib/callback_api');
 const prodRoutes = require('./routes/product.route');
 
 app.use(cors());

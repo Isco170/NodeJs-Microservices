@@ -68,13 +68,13 @@ exports.topic = async (data) => {
 
 
 exports.fanout = async (data) => {
-
+    var prod = null;
     const conn = await createConnection()
     const channel = await conn.createChannel()
 
     const exchange = data.exchange
 
-    channel.assertExchange(exchange, 'fanout', { durable: false })
+    channel.assertExchange(exchange, 'fanout', { durable: true })
     const q = channel.assertQueue('', { exclusive: true })
 
 
@@ -82,11 +82,15 @@ exports.fanout = async (data) => {
     channel.consume(q.queue, (msg) => {
         if (msg !== null) {
             console.log('%s [x] %s [%s]', Date.now(), msg.content.toString(), msg.fields.routingKey)
-            data.execute(JSON.parse(msg.content.toString()))
+            // data.execute(JSON.parse(msg.content.toString()))
+            prod =  JSON.parse(msg.content.toString());
         }
     }, {
         noAck: true
     })
+
+    console.log(prod)
+    return prod;
 
 }
 

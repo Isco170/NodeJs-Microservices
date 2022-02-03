@@ -1,146 +1,68 @@
 const prodModel = require('../model/product.model');
-const amqp = require('amqplib/callback_api');
+const consumer = require('../rabbitMQ/consumer');
 
-async function addProd(request, response){
-    amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamqp.com/uitzwlvz', (error0, connection) => {
-        if (error0) {
-            throw error0
-        }
+async function addProd(request, response) {
 
-        connection.createChannel((error1, channel) => {
-            if (error1) {
-                throw error1
-            }
-
-            channel.assertQueue('product_created', {durable: false})
-            channel.assertQueue('product_deleted', {durable: false})
-
-
-            channel.consume('product_created', async (msg) => {
-                const event_product = JSON.parse(msg.content.toString());
-                const product = {
-                    'admin_id' : parseInt(event_product.id),
-                    'title' : event_product.title,
-                    'image' : event_product.image,
-                    'likes' : event_product.likes
-                }
-
-                await prodModel.create(product);
-                console.log('Product created')
-
-            }, { noAck: true})
-        })
-    })
+    event_product = await consumer.fanout({exchange: 'product_created'})
+    console.log(event_product)
+    // if (event_product) {
+    //     const product = {
+    //         'admin_id': parseInt(event_product.id),
+    //         'title': event_product.title,
+    //         'image': event_product.image,
+    //         'likes': event_product.likes
+    //     }
+    //     await prodModel.create(product);
+    //     console.log('Product created')
+    // }else{
+    //     console.log("No prod")
+    // }
 
     return response.status(202).send({
         msg: 'saved'
     })
 }
 
-async function readProd(request, response){
+async function updateProd(request, response) {
+    const event_product = consumer.fanout('product_updated')
+    const newProd = {
+        'admin_id': parseInt(event_product.id),
+        'title': event_product.title,
+        'image': event_product.image,
+        'likes': event_product.likes
+    }
 
-}
+    const query = { admin_id: newProd.admin_id };
+    const prod = await prodModel.findOneAndUpdate(query, newProd)
 
-async function readOneProd(request, response){
-
-}
-
-async function updateProd(request, response){
-    amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamqp.com/uitzwlvz', (error0, connection) => {
-        if (error0) {
-            throw error0
-        }
-
-        connection.createChannel((error1, channel) => {
-            if (error1) {
-                throw error1
-            }
-
-            channel.assertQueue('product_updated', {durable: false})
-
-
-            channel.consume('product_updated', async (msg) => {
-                const event_product = JSON.parse(msg.content.toString());
-
-                const newProd = {
-                    'admin_id' : parseInt(event_product.id),
-                    'title' : event_product.title,
-                    'image' : event_product.image,
-                    'likes' : event_product.likes
-                }
-
-                const query = { admin_id: newProd.admin_id};
-                const prod = await prodModel.findOneAndUpdate( query, newProd)
-
-                console.log('Product updated '+ newProd.admin_id)
-                console.log(prod)
-
-            }, { noAck: true})
-        })
-    })
-
+    console.log('Product updated ' + newProd.admin_id)
+    console.log(prod)
     return response.status(202).send('done')
 }
 
-async function deleteProd(request, response){
-    amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamqp.com/uitzwlvz', (error0, connection) => {
-        if (error0) {
-            throw error0
-        }
+async function deleteProd(request, response) {
 
-        connection.createChannel((error1, channel) => {
-            if (error1) {
-                throw error1
-            }
+    const event_product = consumer.fanout('product_deleted')
 
-            channel.assertQueue('product_deleted', {durable: false})
-
-
-            channel.consume('product_deleted', async (msg) => {
-                const event_product = JSON.parse(msg.content.toString());
-
-                const product =  parseInt(event_product);
-                const query = { admin_id: product}
-                 await prodModel.findOneAndDelete(query);
-                console.log('Product deleted')
-
-            }, { noAck: true})
-        })
-    })
+    const product = parseInt(event_product);
+    const query = { admin_id: product }
+    await prodModel.findOneAndDelete(query);
 
     return response.status(202).send({
         msg: 'saved'
     })
 }
 
-async function likeProd(request, response){
-    amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamqp.com/uitzwlvz', (error0, connection) => {
-        if (error0) {
-            throw error0
-        }
+async function likeProd(request, response) {
+    const event_product = consumer.fanout('product_liked')
 
-        connection.createChannel((error1, channel) => {
-            if (error1) {
-                throw error1
-            }
+    const product = {
+        'admin_id': parseInt(event_product.id),
+        'likes': parseInt(event_product.likes) + 1
+    }
+    const query = { admin_id: product.admin_id }
+    await prodModel.findOneAndUpdate(query, product)
 
-            channel.assertQueue('product_liked', {durable: false})
-
-
-            channel.consume('product_liked', async (msg) => {
-                const event_product = JSON.parse(msg.content.toString());
-
-                const product ={
-                    'admin_id' : parseInt(event_product.id),
-                    'likes' : parseInt(event_product.likes) + 1
-                }
-                const query = { admin_id: product.admin_id}
-                 await prodModel.findOneAndUpdate(query, product)
-                console.log('Product liked '+ product.admin_id)
-
-            }, { noAck: true})
-        })
-    })
 
     return response.status(202).send({
         msg: 'Liked'
@@ -149,8 +71,6 @@ async function likeProd(request, response){
 
 module.exports = {
     addProd,
-    readProd,
-    readOneProd,
     updateProd,
     deleteProd,
     likeProd

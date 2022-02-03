@@ -1,5 +1,5 @@
 const prodModel = require('../model/product.model');
-const amqp = require('amqplib/callback_api');
+const producer = require('../rabbitMQ/producer');
 
 async function getProducts(request, response) {
     const products = await prodModel.findAll();
@@ -8,19 +8,8 @@ async function getProducts(request, response) {
 
 async function newProduct(request, response) {
     const product = await prodModel.create(request.body);
-    amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamqp.com/uitzwlvz', (error0, connection) => {
-        if (error0) {
-            throw error0
-        }
-
-        connection.createChannel((error1, channel) => {
-            if (error1) {
-                throw error1
-            }
-
-            channel.sendToQueue('product_created', Buffer.from(JSON.stringify(product)))
-        })
-    })
+    producer.fanout({ exchange: 'product_created', message: product})
+   
     return response.send(product)
 }
 
@@ -29,62 +18,27 @@ async function getOne(request, response) {
     return response.send(product);
 }
 
+
 async function updateProd(request, response) {
     const prod = await prodModel.update(request.body, { where: { id: request.body.id } });
     const updatedProd = await prodModel.findOne({where:{id: request.body.id}});
-    
-    amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamqp.com/uitzwlvz', (error0, connection) => {
-        if (error0) {
-            throw error0
-        }
+    producer.fanout({exchange: 'product_updated', message: updatedProd })
 
-        connection.createChannel((error1, channel) => {
-            if (error1) {
-                throw error1
-            }
-
-            channel.sendToQueue('product_updated', Buffer.from(JSON.stringify(updatedProd)))
-        })
-    })
     return response.send(updatedProd)
 }
 
 async function deleteProd(request, response) {
     const prod = await prodModel.destroy({ where: { id: request.params.id } });
-    amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamqp.com/uitzwlvz', (error0, connection) => {
-        if (error0) {
-            throw error0
-        }
+    producer.fanout({ exchange: 'product_deleted', message: request.params.id})
 
-        connection.createChannel((error1, channel) => {
-            if (error1) {
-                throw error1
-            }
-
-            channel.sendToQueue('product_deleted', Buffer.from(JSON.stringify(request.params.id)))
-        })
-    })
     return response.send(true);
 }
 
 async function likeProd(request, response) {
     const prod = await prodModel.findOne({ where: { id: request.params.id } });
-
     await prodModel.update({ likes: prod.likes + 1 }, { where: { id: prod.id } });
+    producer.fanout({exchange: 'product_liked', message: prod});
 
-    amqp.connect('amqps://uitzwlvz:YOMS19CcfQCOXgopDH0eP6W6FeAMhy3A@fox.rmq.cloudamqp.com/uitzwlvz', (error0, connection) => {
-        if (error0) {
-            throw error0
-        }
-
-        connection.createChannel((error1, channel) => {
-            if (error1) {
-                throw error1
-            }
-
-            channel.sendToQueue('product_liked', Buffer.from(JSON.stringify(prod)));
-        })
-    })
     return response.send(prod);
 }
 
